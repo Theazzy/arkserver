@@ -1,0 +1,10 @@
+# Crontab for the ARK server (installed for the unprivileged "steam" user).
+# Jobs run as that user; the runtime environment is injected by steam-entrypoint.sh,
+# so arkmanager finds its config. Adjust the schedule to taste.
+#
+# Fields: minute hour day-of-month month day-of-week  command
+# NOTE: the container timezone may differ from yours. Sync with
+#       -v /etc/localtime:/etc/localtime:ro or -e "TZ=Europe/Berlin".
+
+# Backup the world every 6 hours (rolling retention is handled by arkMaxBackupSizeMB).
+0 */6 * * * arkmanager backup >> ${ARK_SERVER_VOLUME}/log/crontab.log 2>&1

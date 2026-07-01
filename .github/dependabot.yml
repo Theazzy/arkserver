@@ -1,0 +1,17 @@
+version: 2
+updates:
+  # Haelt die per Commit-SHA gepinnten Actions in .github/workflows aktuell.
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: ci
+
+  # Haelt den FROM ...@sha256-Basis-Image-Pin im Dockerfile aktuell.
+  - package-ecosystem: docker
+    directory: "/"
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: build

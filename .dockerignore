@@ -1,0 +1,25 @@
+# Build-Kontext schlank halten: der Dockerfile kopiert nur bin/ und conf.d/.
+# Alles hier Gelistete wird NICHT in den Docker-Build-Kontext übertragen.
+
+# Versionskontrolle & CI
+.git
+.gitignore
+.dockerignore
+.github
+
+# Doku & Meta (gesteuert aus ../arkserver-ops)
+*.md
+LICENSE
+
+# Secrets & lokale Konfiguration
+.env
+.env.*
+
+# Deploy-Vorlagen (Compose wird nicht ins Image gebaut)
+deploy/
+
+# Editor / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

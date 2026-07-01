@@ -1,0 +1,20 @@
+# --- Secrets — niemals echte Werte committen ---
+.env
+.env.*
+!.env.example
+
+# --- Lokale Server-/Laufzeitdaten ---
+volumes/
+ark-data/
+*.log
+
+# --- Deploy: Vorlagen (example.env, docker-compose.yml) werden getrackt.
+#     Die echte deploy/.env ist bereits über die .env-Regel oben ausgeschlossen. ---
+deploy/.env
+
+# --- Editor / OS ---
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+*.swp

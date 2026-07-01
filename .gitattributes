@@ -1,0 +1,10 @@
+# Container scripts and config templates must use LF regardless of host checkout —
+# CRLF breaks the shebang inside the image (env: 'bash\r': No such file or directory).
+*.sh        text eol=lf
+bin/*       text eol=lf
+conf.d/*    text eol=lf
+*.cfg       text eol=lf
+*.yml       text eol=lf
+*.env       text eol=lf
+deploy/*    text eol=lf
+Dockerfile  text eol=lf

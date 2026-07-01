@@ -1,0 +1,96 @@
+# Hardened, self-hosted ARK: Survival Evolved dedicated server.
+# Copy example.env -> .env in this directory, then run from here:
+#   cp example.env .env && docker compose up -d
+# Variable interpolation reads the .env next to this file (run compose from ./deploy).
+
+volumes:
+  ark-data:
+  # Cluster only: shared transfer directory across cluster members. Uncomment to use,
+  # and mount it at /cluster below. Not needed for a plain vanilla server.
+  #ark-cluster:
+  # Optional: persist SteamCMD's workshop/download cache (/home/steam/Steam) so mods are
+  # not re-downloaded on every container recreate (#75). Recommended when using mods.
+  #steam-home:
+
+services:
+  ark:
+    container_name: ${COMPOSE_PROJECT_NAME:-ark}_server
+    # Keep the server up across reboots/crashes, but not after an explicit `stop`.
+    restart: unless-stopped
+    # Build our hardened image from source (context = repo root, one level up).
+    # To run a published image instead, comment out `build:` and point `image:` at the tag.
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    image: arkserver:latest
+    # Give the graceful-shutdown trap (broadcast -> saveworld -> backup) time to finish
+    # before Docker sends SIGKILL. Raise for large worlds. (Phase 4 lifecycle.)
+    stop_grace_period: 300s
+    # Cap RAM (#85). ARK SE thrashes/livelocks below ~10 GB even on TheIsland (first
+    # runtime test: 8g pinned the cgroup at the ceiling and the world never finished
+    # loading). 12g is a safe floor for a small map; raise for big maps/many mods.
+    # See ../arkserver-ops/docs/hardware-requirements.md.
+    mem_limit: ${MEM_LIMIT:-12g}
+    environment:
+      # # This setup is necessary if you have to download a non-anonymous appID/modID
+      #- STEAM_LOGIN=${STEAM_LOGIN}
+      - SESSION_NAME=${SESSION_NAME}
+      - SERVER_MAP=${SERVER_MAP}
+      - SERVER_MAP_MOD_ID=${SERVER_MAP_MOD_ID:-}
+      - SERVER_PASSWORD=${SERVER_PASSWORD}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - MAX_PLAYERS=${MAX_PLAYERS}
+      - UPDATE_ON_START=${UPDATE_ON_START}
+      - BACKUP_ON_STOP=${BACKUP_ON_STOP}
+      - PRE_UPDATE_BACKUP=${PRE_UPDATE_BACKUP}
+      - WARN_ON_STOP=${WARN_ON_STOP}
+      - GAME_MOD_IDS=${GAME_MOD_IDS}
+      # Launch flags (steam-entrypoint). BattlEye anti-cheat is ON by default; set
+      # DISABLE_BATTLEYE=true to launch with -NoBattlEye. ENABLE_CROSSPLAY=true adds -crossplay.
+      - DISABLE_BATTLEYE=${DISABLE_BATTLEYE:-}
+      - ENABLE_CROSSPLAY=${ENABLE_CROSSPLAY:-}
+      # File ownership on the bind/volume + inherited umask (Phase 3/4).
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - UMASK=${UMASK:-0002}
+      # === Cluster (opt-in) ===
+      # Set CLUSTER_ID to enable cross-server transfers (shared /cluster dir). Leave empty
+      # for a plain vanilla server. SUB_INSTANCE_KEYS runs extra maps in THIS container;
+      # each sub gets ports offset from the main instance (game +2, query +1, rcon +1 per
+      # sub) — open the matching ranges below and see ../arkserver-ops/docs/mods-and-cluster.md.
+      - CLUSTER_ID=${CLUSTER_ID:-}
+      - SUB_INSTANCE_KEYS=${SUB_INSTANCE_KEYS:-}
+      #- SUB_Fjordur_SERVER_MAP=Fjordur
+      #- SUB_Fjordur_SERVER_MAP_MOD_ID=
+    ports:
+      # Port for connections from the ARK game client
+      - "7777:7777/udp"
+      # Raw UDP socket port (always game client port +1)
+      - "7778:7778/udp"
+      # Steam's server-list / query port
+      - "27015:27015/udp"
+      # RCON management port (TCP, optional — only expose if you use remote RCON)
+      - "27020:27020/tcp"
+      # Cluster only: open one extra block per sub-instance instead of the four lines above,
+      # e.g. for 2 sub-instances: "7777-7781:7777-7781/udp", "27015-27017:27015-27017/udp",
+      # "27020-27022:27020-27022/tcp".
+    volumes:
+      - ${ARK_SERVER_VOLUME:-ark-data}:/app
+      # Optional: persist the SteamCMD workshop cache so mods survive container recreates
+      # and aren't re-downloaded every start (#75). Uncomment with the steam-home volume
+      # above. Also required for non-anonymous appID/modID downloads (set STEAM_LOGIN).
+      #- steam-home:/home/steam/Steam
+      # Cluster only: shared transfer dir. Uncomment together with the ark-cluster volume
+      # above (or use a host path shared between cluster members across machines).
+      #- ark-cluster:/cluster
+    # Liveness probe (bin/healthcheck.sh). start_period covers the first-boot SteamCMD
+    # download (~28 GB) + world load, which can take 20-40+ min; only then do failures
+    # count. Restarts during this window are NOT penalised.
+    healthcheck:
+      test: ["CMD", "/healthcheck.sh"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 1800s
+    networks:
+      - default
