@@ -17,12 +17,16 @@ services:
     container_name: ${COMPOSE_PROJECT_NAME:-ark}_server
     # Keep the server up across reboots/crashes, but not after an explicit `stop`.
     restart: unless-stopped
-    # Build our hardened image from source (context = repo root, one level up).
-    # To run a published image instead, comment out `build:` and point `image:` at the tag.
-    build:
-      context: ..
-      dockerfile: Dockerfile
-    image: arkserver:latest
+    # Published, CI-built + Trivy-scanned image from GHCR (recommended). Pin a fixed version
+    # for production — easy rollback; :latest = newest release, :edge = tip of main. The
+    # package is public, so no docker login is needed.
+    image: ghcr.io/theazzy/arkserver:0.1.0
+    # To build the hardened image locally from source instead (context = repo root, one level
+    # up), comment out `image:` above and uncomment the block below:
+    #build:
+    #  context: ..
+    #  dockerfile: Dockerfile
+    #image: arkserver:latest
     # Give the graceful-shutdown trap (broadcast -> saveworld -> backup) time to finish
     # before Docker sends SIGKILL. Raise for large worlds. (Phase 4 lifecycle.)
     stop_grace_period: 300s

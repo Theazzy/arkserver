@@ -7,11 +7,12 @@ Gehärteter, eigenständiger Docker-Server für ein selbst gehostetes ARK: Survi
 ```bash
 cd deploy
 cp example.env .env        # Werte setzen – insbesondere Passwörter
-docker compose up -d       # baut das Image lokal und startet den Server
+docker compose up -d       # zieht das Image von GHCR und startet (bzw. baut lokal, wenn build: aktiv)
 docker compose logs -f ark # Fortschritt verfolgen (Erstdownload via SteamCMD dauert)
 ```
-Voraussetzungen: Docker + Compose, ~8 GB RAM, ~20 GB freier Speicher für die
-ARK-SE-Vollinstallation. Netzwerk/Port-Forwarding: `../arkserver-ops/docs/networking.md`.
+Voraussetzungen: Docker + Compose, **≥12 GB RAM** (`MEM_LIMIT`), ~40 GB freier SSD-Speicher
+für die ARK-SE-Vollinstallation (Details: `../arkserver-ops/docs/hardware-requirements.md`).
+Netzwerk/Port-Forwarding: `../arkserver-ops/docs/networking.md`.
 
 ## Container-Image (GHCR)
 Statt lokal zu bauen, kann das vorgebaute Image gezogen werden:
